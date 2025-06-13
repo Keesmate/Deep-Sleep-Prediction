@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 # load data
-df = pd.read_csv('final_cleaned_data.csv')
+df = pd.read_csv('cleaned_data.csv')
 
 
 ################# 1. Data Preparation #################
