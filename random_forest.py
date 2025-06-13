@@ -10,8 +10,8 @@ import random
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
 import optuna
-
 from sklearn.model_selection import cross_val_score
 
 
@@ -26,7 +26,7 @@ def set_seed(seed=42):
 set_seed(42)  # use a fixed seed of your choice
 
 # load data and rename target column
-df = pd.read_csv('/Users/noah/PycharmProjects/QuantifedSelf/Data_1_seasonal_features.csv')
+df = pd.read_csv('/Users/noah/PycharmProjects/QuantifedSelf/Data_1_seasonal_features_clean.csv')
 df.rename(columns={'Deep sleep (mins)': 'DeepSleep'}, inplace=True)
 
 # drop GMM columns
@@ -94,10 +94,10 @@ def objective(trial):
         train_data[selected_feats],
         train_data[target_col],
         cv=5,
-        scoring='neg_mean_squared_error',
+        scoring='neg_mean_absolute_error',
         n_jobs=-1
     )
-    # return average MSE across folds
+    # return average MAE across folds
     return -cv_scores.mean()
 
 study = optuna.create_study(direction="minimize")
@@ -117,20 +117,26 @@ final_model = RandomForestRegressor(**best_params, random_state=42, n_jobs=-1)
 final_model.fit(pd.concat([train_data, val_data])[final_feats],
                 pd.concat([train_data, val_data])[target_col])
 # Compute and print Train MSE on the training set
+# Compute and print Train MSE on the training set
 train_preds = final_model.predict(train_data[final_feats])
 train_mse = mean_squared_error(train_data[target_col], train_preds)
 print(f"Train MSE: {train_mse:.4f}")
+train_mae = mean_absolute_error(train_data[target_col], train_preds)
+print(f"Train MAE: {train_mae:.4f}")
 # Compute and print Val MSE on the validation set
 val_preds = final_model.predict(val_data[final_feats])
 val_mse = mean_squared_error(val_data[target_col], val_preds)
 print(f"Val MSE: {val_mse:.4f}")
+val_mae = mean_absolute_error(val_data[target_col], val_preds)
+print(f"Val MAE: {val_mae:.4f}")
 # evaluate on test set
 test_preds = final_model.predict(test_data[final_feats])
 mse_test = mean_squared_error(test_data[target_col], test_preds)
 print(f"Test MSE: {mse_test:.4f}")
+test_mae = mean_absolute_error(test_data[target_col], test_preds)
+print(f"Test MAE: {test_mae:.4f}")
 
 # Plot actual vs predicted deep sleep on the test set
-import matplotlib.pyplot as plt
 days = range(len(test_data))
 plt.figure(figsize=(10, 5))
 plt.plot(days, test_data[target_col].values, label='Actual', color='blue')
@@ -142,9 +148,6 @@ plt.legend()
 plt.show()
 
 # Plot feature importances for the final selected features (horizontal bar chart)
-import numpy as np
-import matplotlib.pyplot as plt
-
 importances = final_model.feature_importances_
 # sort features by importance descending
 indices = np.argsort(importances)[::-1]

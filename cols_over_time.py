@@ -98,3 +98,7 @@ df = df.drop(columns=['month'])
 # save enriched dataset with seasonal features
 df.to_csv('Data_1_seasonal_features.csv', index=False)
 print(f"Selected seasonal variables (strength >= {threshold}): {selected}")
+
+
+
+
