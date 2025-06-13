@@ -16,6 +16,7 @@ df['Date'] = pd.to_datetime(df['Date'], dayfirst=True)
 df.sort_values('Date', inplace=True)
 df.reset_index(drop=True, inplace=True)
 
+
 # Handle time-of-day features by converting to numeric and creating cyclical features
 # Convert times to minutes since midnight
 df['BedTimeMinutes'] = pd.to_datetime(df['Bed-time'], format='%H:%M %p').dt.hour * 60 + \
