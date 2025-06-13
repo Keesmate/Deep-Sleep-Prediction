@@ -25,7 +25,7 @@ df = df.set_index('Date')
 
 """
 
-Use this before you do feature engineering so we have the same way indexing the date.
+Use this before you do feature engineering so we have the same way of indexing the date.
 
 """
 
