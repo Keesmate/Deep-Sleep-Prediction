@@ -26,7 +26,7 @@ def set_seed(seed=42):
 set_seed(42)  # use a fixed seed of your choice
 
 # load data and rename target column
-df = pd.read_csv('/Users/noah/PycharmProjects/QuantifedSelf/sliding_windows_features.csv')
+df = pd.read_csv('/Users/noah/PycharmProjects/QuantifedSelf/Data_1_seasonal_features.csv')
 df.rename(columns={'Deep sleep (mins)': 'DeepSleep'}, inplace=True)
 
 # drop GMM columns
@@ -101,7 +101,7 @@ def objective(trial):
     return -cv_scores.mean()
 
 study = optuna.create_study(direction="minimize")
-study.optimize(objective, n_trials=500, n_jobs=-1)
+study.optimize(objective, n_trials=150, n_jobs=-1)
 # copy best parameters to modify threshold without affecting the study's internal params
 best_params = study.best_params.copy()
 print("Best hyperparameters:", best_params)
