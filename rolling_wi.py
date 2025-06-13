@@ -6,6 +6,12 @@ from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
 import torch.optim as optim
 
+"""
+
+Creates rolling windows for all columns in the dataset from 1-10 days.
+
+"""
+
 df = pd.read_csv('/Users/noah/PycharmProjects/QuantifedSelf/Data_1.csv')
 
 
@@ -15,6 +21,13 @@ df['Date'] = pd.to_datetime(df['Date'], dayfirst=True)
 df.sort_values('Date', inplace=True)
 # set Date as index for calendar-based rolling windows
 df = df.set_index('Date')
+
+
+"""
+
+Use this before you do feature engineering so we have the same way indexing the date.
+
+"""
 
 
 
