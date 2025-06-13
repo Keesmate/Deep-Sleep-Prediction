@@ -30,7 +30,6 @@ df = df.drop(columns=cols_to_drop)
 df.drop(['Date', 'Unnamed: 0'], axis=1, inplace=True)
 
 
-print(df.columns)
 
 # ################# 2. Data Splitting #################
 
@@ -51,6 +50,12 @@ print(len(train_data), len(val_data), len(test_data))  # Expect 70, 15, 15
 # Scale the feature columns using training data statistics
 feature_cols = [col for col in train_data.columns if col != 'DeepSleep']  # all columns except the target
 target_col = 'DeepSleep'
+
+# debug
+print("NaNs in train_data:\n", train_data[feature_cols].isna().sum().sort_values(ascending=False).head())
+print("Infs in train_data:\n", np.isinf(train_data[feature_cols]).sum().sum())
+
+
 scaler = StandardScaler()
 
 # Fit scaler on training data and transform all splits
