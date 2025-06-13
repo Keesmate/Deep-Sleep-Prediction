@@ -38,7 +38,9 @@ df = df.loc[:, ~df.columns.str.startswith('Unnamed')]
 
 # Create rolling-window mean features for windows of length 1 to 7 days
 window_sizes = range(1, 11)
-numeric_cols = df.select_dtypes(include=[np.number]).columns
+# use all numeric columns except the target 'DeepSleep' to generate rolling windows
+numeric_cols = [col for col in df.select_dtypes(include=[np.number]).columns
+                if col != 'Deep sleep (mins)']
 for w in window_sizes:
     for col in numeric_cols:
         df[f"{col}_roll{w}_mean"] = df[col].rolling(f"{w}D", min_periods=1).mean()
