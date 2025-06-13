@@ -51,6 +51,9 @@ cols_to_drop = df.columns[df.columns.str.endswith("roll1_std")]
 print("Dropping columns:\n", cols_to_drop.tolist())
 df = df.drop(columns=cols_to_drop)
 
+# Fill NaNs in all *_std columns with 0
+std_cols = df.columns[df.columns.str.endswith('_std')]
+df[std_cols] = df[std_cols].fillna(0)
 
 # reset index to bring Date back as a column
 df = df.reset_index()
