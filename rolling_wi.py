@@ -12,7 +12,7 @@ Creates rolling windows for all columns in the dataset from 1-10 days.
 
 """
 
-df = pd.read_csv('/Users/noah/PycharmProjects/QuantifedSelf/Data_1.csv')
+df = pd.read_csv('Data_1.csv')
 
 
 
@@ -42,13 +42,18 @@ numeric_cols = df.select_dtypes(include=[np.number]).columns
 for w in window_sizes:
     for col in numeric_cols:
         df[f"{col}_roll{w}_mean"] = df[col].rolling(f"{w}D", min_periods=1).mean()
-        df[f"{col}_roll{w}_std"] = df[col].rolling(f"{w}D", min_periods=1).std()
+        df[f"{col}_roll{w}_std"] = df[col].rolling(f"{w}D", min_periods=2).std()
+
+# remove 1 day std variables
+cols_to_drop = df.columns[df.columns.str.endswith("roll1_std")]
+print("Dropping columns:\n", cols_to_drop.tolist())
+df = df.drop(columns=cols_to_drop)
 
 
 # reset index to bring Date back as a column
 df = df.reset_index()
 #save the sliding windows features to a new csv file
-df.to_csv('/Users/noah/PycharmProjects/QuantifedSelf/sliding_windows_features.csv', index=False)
+df.to_csv('sliding_windows_features.csv')
 
 #print all column names
 def print_column_names(df):

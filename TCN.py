@@ -19,15 +19,18 @@ def set_seed(seed=42):
 set_seed(42)  # use a fixed seed of your choice
 
 # load data and rename target column
-df = pd.read_csv('Data_1.csv')
+df = pd.read_csv('sliding_windows_features.csv')
 df.rename(columns={'Deep sleep (mins)': 'DeepSleep'}, inplace=True)
 
 # drop GMM columns
 cols_to_drop = [col for col in df.columns if col.startswith("GMM")]
 df = df.drop(columns=cols_to_drop)
 
-print(df.columns)
+# Drop or exclude the original time columns now that we have numeric features
+df.drop(['Date', 'Unnamed: 0'], axis=1, inplace=True)
 
+
+print(df.columns)
 
 # ################# 2. Data Splitting #################
 
