@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 # load data
-df = pd.read_csv('final_cleaned_data.csv')
+df = pd.read_csv('cleaned_data.csv')
 
 
 ################# 1. Data Preparation #################
@@ -49,7 +49,7 @@ print(df["BedTimeSin"].head())
 # (Optional) One could create cyclical features for other daily cycles (e.g., if using day-of-week)
 
 # Drop or exclude the original time columns now that we have numeric features
-df.drop(['Date', 'Bed-time', 'Wakeup-time', 'BedTimeMinutes', 'WakeTimeMinutes', 
+df.drop(['Bed-time', 'Wakeup-time', 'BedTimeMinutes', 'WakeTimeMinutes', 
          'Sunrise', 'Sunset', 'SunriseMinutes', 'SunsetMinutes'], axis=1, inplace=True)
 
 df.to_csv('Data_1.csv', index=False)

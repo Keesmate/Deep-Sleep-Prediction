@@ -6,6 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
+from sklearn.metrics import mean_squared_error
 import random
 
 # set random seed for reproducibility
@@ -92,7 +93,7 @@ val_dataset   = SleepDataset(val_data, seq_length=SEQ_LENGTH)
 test_dataset  = SleepDataset(test_data, seq_length=SEQ_LENGTH)
 
 # Create DataLoader for batching
-BATCH_SIZE = 8  
+BATCH_SIZE = 8  # example batch size, can be tuned
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 val_loader   = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 test_loader  = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
@@ -188,7 +189,7 @@ model.to(device)
 
 # Define loss function and optimizer
 criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001) 
+optimizer = optim.Adam(model.parameters(), lr=0.001)  # learning rate can be tuned
 
 EPOCHS = 350
 for epoch in range(1, EPOCHS+1):
@@ -268,3 +269,95 @@ plt.tight_layout()
 # Show or save the plot
 plt.show()
 # plt.savefig('deep_sleep_prediction_plot.png')  # optionally save
+
+
+# --------------- Permutation Feature Importance ---------------
+def compute_permutation_importance(model, test_data, seq_length, baseline_mse, feature_cols, target_col, device):
+    importances = {}
+    
+    for feature in feature_cols:
+        permuted_data = test_data.copy()
+        permuted_data[feature] = np.random.permutation(permuted_data[feature].values)
+
+        permuted_dataset = SleepDataset(permuted_data, seq_length=seq_length)
+        permuted_loader = DataLoader(permuted_dataset, batch_size=1, shuffle=False)
+
+        model.eval()
+        perm_preds = []
+        perm_actuals = []
+        with torch.no_grad():
+            for batch_X, batch_y in permuted_loader:
+                batch_X = batch_X.to(device)
+                pred = model(batch_X).squeeze().cpu().numpy()
+                perm_preds.append(pred)
+                perm_actuals.append(batch_y.numpy())
+
+        perm_preds = np.array(perm_preds).flatten()
+        perm_actuals = np.array(perm_actuals).flatten()
+
+        perm_mse = mean_squared_error(perm_actuals, perm_preds)
+        importances[feature] = perm_mse - baseline_mse  # delta MSE
+
+    return importances
+
+
+############ Permutation Importance Calculation ############
+# Run permutation importance
+baseline_mse = test_mse
+feature_importances = compute_permutation_importance(
+    model=model,
+    test_data=test_data,
+    seq_length=SEQ_LENGTH,
+    baseline_mse=baseline_mse,
+    feature_cols=feature_cols,
+    target_col=target_col,
+    device=device
+)
+
+# Sort and print
+sorted_importances = sorted(feature_importances.items(), key=lambda x: x[1], reverse=True)
+print("\nFeature Importance (Permutation):")
+for feat, imp in sorted_importances:
+    print(f"{feat}: ΔMSE = {imp:.4f}")
+
+
+
+
+# ############### Saliency Map (Input Gradient Attribution) ###############
+# # Get one test sample for attribution (you can loop for more later)
+# sample_X, _ = test_dataset[0]  # shape: (features, seq_length)
+# sample_X = sample_X.unsqueeze(0).to(device)  # add batch dim → shape: (1, features, seq_length)
+# sample_X.requires_grad = True  # enable gradient tracking
+
+# # Forward pass
+# model.eval()
+# output = model(sample_X)
+# loss = output.squeeze()  # since it's regression, we use the prediction directly
+
+# # Backward pass: compute gradients w.r.t. input
+# loss.backward()
+
+# # Get the gradients (same shape as input)
+# saliency = sample_X.grad.abs().squeeze().cpu().numpy()  # shape: (features, seq_length)
+
+# # Average saliency across time (seq_length) to rank features
+# feature_saliency = saliency.mean(axis=1)  # shape: (features,)
+# feature_importance = list(zip(feature_cols, feature_saliency))
+# feature_importance.sort(key=lambda x: x[1], reverse=True)
+
+# # Print sorted importance
+# print("\nSaliency-based Feature Importance (average abs gradient across time):")
+# for name, score in feature_importance:
+#     print(f"{name}: {score:.4f}")
+
+# # Optional: plot saliency heatmap
+# import seaborn as sns
+
+# plt.figure(figsize=(12, 6))
+# sns.heatmap(saliency, xticklabels=[f"T-{SEQ_LENGTH - i - 1}" for i in range(SEQ_LENGTH)],
+#             yticklabels=feature_cols, cmap="viridis", annot=False)
+# plt.title("Input Gradient Saliency (Feature Attribution)")
+# plt.xlabel("Time Step")
+# plt.ylabel("Input Features")
+# plt.tight_layout()
+# plt.show()
