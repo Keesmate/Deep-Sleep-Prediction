@@ -6,7 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
 import torch.optim as optim
 
-df = pd.read_csv('/Users/noah/PycharmProjects/QuantifedSelf/cleaned_data.csv')
+df = pd.read_csv('/Users/noah/PycharmProjects/QuantifedSelf/Data_1.csv')
 
 
 
@@ -29,6 +29,10 @@ numeric_cols = df.select_dtypes(include=[np.number]).columns
 for w in window_sizes:
     for col in numeric_cols:
         df[f"{col}_roll{w}_mean"] = df[col].rolling(f"{w}D", min_periods=1).mean()
+
+for w in window_sizes:
+    for col in numeric_cols:
+        df[f"{col}_roll{w}_std"] = df[col].rolling(f"{w}D", min_periods=1).std()
 
 # reset index to bring Date back as a column
 df = df.reset_index()
