@@ -195,43 +195,6 @@ def create_weather_features(df):
     return df
 
 
-def create_rolling_features(df, target_col='Deep sleep (mins)'):
-    """Create rolling window features"""
-    print("Creating rolling window features...")
-
-    # Sort by date for rolling calculations
-    df = df.sort_values('Date').reset_index(drop=True)
-
-    # Determine window size based on data size
-    window_size = min(7, len(df) // 3)  # Use smaller window if dataset is small
-    min_periods = max(1, window_size // 2)
-
-    print(f"Using rolling window of {window_size} days with min_periods={min_periods}")
-
-    # Find key features flexibly
-    base_features = []
-    for col in df.columns:
-        col_lower = col.lower()
-        if any(keyword in col_lower for keyword in ['sleep score', 'resting heart', 'body battery', 'hrv']):
-            if df[col].dtype in ['int64', 'float64']:  # Only numeric columns
-                base_features.append(col)
-
-    # 7-day rolling averages for found features
-    for col in base_features[:4]:  # Limit to first 4 to avoid too many features
-        if col in df.columns:
-            df[f'{col}_rolling_avg'] = df[col].rolling(window=window_size, min_periods=min_periods).mean()
-            df[f'{col}_rolling_std'] = df[col].rolling(window=window_size, min_periods=min_periods).std()
-            print(f"✓ Rolling features created for {col}")
-
-    # Target variable rolling features
-    if target_col in df.columns:
-        df[f'{target_col}_rolling_avg'] = df[target_col].rolling(window=window_size, min_periods=min_periods).mean()
-        df[f'{target_col}_trend'] = df[target_col] - df[f'{target_col}_rolling_avg']
-        print(f"✓ Rolling features created for target: {target_col}")
-
-    return df
-
-
 def create_interaction_features(df):
     """Create interaction features"""
     print("Creating interaction features...")
@@ -274,30 +237,7 @@ def create_interaction_features(df):
     return df
 
 
-def create_lag_features(df, target_col='Deep sleep (mins)'):
-    """Create lag features"""
-    print("Creating lag features...")
 
-    # Sort by date
-    df = df.sort_values('Date').reset_index(drop=True)
-
-    # Find key features flexibly
-    key_features = [target_col]  # Always include target
-
-    for col in df.columns:
-        col_lower = col.lower()
-        if any(keyword in col_lower for keyword in ['sleep score', 'body battery', 'resting heart']):
-            if df[col].dtype in ['int64', 'float64'] and col != target_col:
-                key_features.append(col)
-
-    # Previous day features
-    for feature in key_features[:4]:  # Limit to avoid too many features
-        if feature in df.columns:
-            df[f'{feature}_prev_day'] = df[feature].shift(1)
-            df[f'{feature}_change'] = df[feature] - df[f'{feature}_prev_day']
-            print(f"✓ Lag features created for {feature}")
-
-    return df
 
 
 def get_top_correlated_features(df, target_col='Deep sleep (mins)', top_n=15):
@@ -458,11 +398,7 @@ def main():
     df = create_sleep_features(df)
     df = create_weather_features(df)
 
-    if 'Date' in df.columns:
-        df = create_rolling_features(df, target_col)
-        df = create_lag_features(df, target_col)
-    else:
-        print("Skipping rolling and lag features - no Date column found")
+
 
     df = create_interaction_features(df)
 
