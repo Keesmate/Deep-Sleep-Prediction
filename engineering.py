@@ -71,23 +71,10 @@ def create_time_features(df):
         return df
 
     # Extract time components
-    df['Year'] = df['Date'].dt.year
-    df['Month'] = df['Date'].dt.month
-    df['Day'] = df['Date'].dt.day
     df['DayOfWeek'] = df['Date'].dt.dayofweek
-    df['DayOfYear'] = df['Date'].dt.dayofyear
-    df['WeekOfYear'] = df['Date'].dt.isocalendar().week
 
     # Create weekend indicator
     df['IsWeekend'] = (df['DayOfWeek'] >= 5).astype(int)
-
-    # Create season feature
-    df['Season'] = df['Month'].map({
-        12: 'Winter', 1: 'Winter', 2: 'Winter',
-        3: 'Spring', 4: 'Spring', 5: 'Spring',
-        6: 'Summer', 7: 'Summer', 8: 'Summer',
-        9: 'Fall', 10: 'Fall', 11: 'Fall'
-    })
 
     print("✓ Time features created successfully")
     return df
