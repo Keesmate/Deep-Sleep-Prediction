@@ -7,29 +7,14 @@ import torch.nn as nn
 import torch.optim as optim
 
 # load data
-df = pd.read_csv('/Users/noah/PycharmProjects/QuantifedSelf/enhanced_dataset.csv')
+df = pd.read_csv('Data_1.csv')
 
 
 ################# 1. Data Preparation #################
 # Convert the 'Date' column to datetime and sort chronologically
-df['Date'] = pd.to_datetime(df['Date'], dayfirst=True)
+df['Date'] = pd.to_datetime(df['Date'], dayfirst=False)
 df.sort_values('Date', inplace=True)
 df.reset_index(drop=True, inplace=True)
-
-
-# Handle time-of-day features by converting to numeric and creating cyclical features
-# Convert times to minutes since midnight
-df['BedTimeMinutes'] = pd.to_datetime(df['Bed-time'], format='%H:%M %p').dt.hour * 60 + \
-                       pd.to_datetime(df['Bed-time'], format='%H:%M %p').dt.minute
-
-df['SunsetMinutes'] = pd.to_datetime(df['Sunset'], format='%H:%M').dt.hour * 60 + \
-                      pd.to_datetime(df['Sunset'], format='%H:%M').dt.minute
-
-df['WakeTimeMinutes'] = pd.to_datetime(df['Wakeup-time'], format='%H:%M %p').dt.hour * 60 + \
-                       pd.to_datetime(df['Wakeup-time'], format='%H:%M %p').dt.minute
-
-df['SunriseMinutes'] = pd.to_datetime(df['Sunrise'], format='%H:%M').dt.hour * 60 + \
-                      pd.to_datetime(df['Sunrise'], format='%H:%M').dt.minute
 
 
 # Create cyclical features for bed time + wake time (24h = 1440 minutes period)
@@ -53,4 +38,4 @@ print(df["BedTimeSin"].head())
 df.drop(['Bed-time', 'Wakeup-time', 'BedTimeMinutes', 'WakeTimeMinutes', 
          'Sunrise', 'Sunset', 'SunriseMinutes', 'SunsetMinutes'], axis=1, inplace=True)
 
-df.to_csv('enhanced_dataset.csv', index=False)
+df.to_csv('Data_2.csv', index=False)

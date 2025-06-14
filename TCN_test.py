@@ -19,25 +19,20 @@ def set_seed(seed=42):
 set_seed(42)  # use a fixed seed of your choice
 
 # load data and rename target column
-df = pd.read_csv('Data_1.csv')
+df = pd.read_csv('Data_2.csv')
 df.rename(columns={'Deep sleep (mins)': 'DeepSleep'}, inplace=True)
-
-# drop GMM columns
-cols_to_drop = [col for col in df.columns if col.startswith("GMM")]
-df = df.drop(columns=cols_to_drop)
 
 # Drop or exclude the original time columns now that we have numeric features
 df.drop(['Date',], axis=1, inplace=True)
-
 
 
 # ################# 2. Data Splitting #################
 
 # Define indices for split (70/15/15 split for 100 days of data)
 n = len(df)
-train_size = int(0.70 * n)      # 70 days
-val_size   = int(0.15 * n)      # 15 days
-test_size  = n - train_size - val_size  # remaining 15 days
+train_size = int(0.70 * n)     
+val_size   = int(0.15 * n)      
+test_size  = n - train_size - val_size  
 
 # Split the dataframe into train, val, test segments
 train_data = df.iloc[:train_size].copy()
@@ -45,7 +40,7 @@ val_data   = df.iloc[train_size:train_size+val_size].copy()
 test_data  = df.iloc[train_size+val_size:].copy()
 
 # Verify the split sizes (optional)
-print(len(train_data), len(val_data), len(test_data))  # Expect 70, 15, 15
+print(len(train_data), len(val_data), len(test_data))  
 
 # Scale the feature columns using training data statistics
 feature_cols = [col for col in train_data.columns if col != 'DeepSleep']  # all columns except the target
@@ -197,7 +192,7 @@ train_loss_list = []
 val_loss_list = []
 test_mae_list = []
 
-EPOCHS = 650
+EPOCHS = 550
 for epoch in range(1, EPOCHS+1):
     model.train()
     train_loss = 0.0

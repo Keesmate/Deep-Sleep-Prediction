@@ -20,31 +20,25 @@ def set_seed(seed=42):
 set_seed(42)  # use a fixed seed of your choice
 
 # load data and rename target column
-df = pd.read_csv('Data_1.csv')
+df = pd.read_csv('Data_2.csv')
 df.rename(columns={'Deep sleep (mins)': 'DeepSleep'}, inplace=True)
 
-# drop GMM columns
-cols_to_drop = [col for col in df.columns if col.startswith("GMM")]
-df = df.drop(columns=cols_to_drop)
-
-print(df.columns)
+# Drop or exclude the original time columns now that we have numeric features
+df.drop(['Date',], axis=1, inplace=True)
 
 
 # ################# 2. Data Splitting #################
 
-# Define indices for split (70/15/15 split for 100 days of data)
+# Define indices for split (100/20/20 split for 140 days of data)
 n = len(df)
-train_size = int(0.70 * n)      # 70 days
-val_size   = int(0.15 * n)      # 15 days
-test_size  = n - train_size - val_size  # remaining 15 days
+train_size = int(0.70 * n)     
+val_size   = int(0.15 * n)      
+test_size  = n - train_size - val_size  
 
 # Split the dataframe into train, val, test segments
 train_data = df.iloc[:train_size].copy()
 val_data   = df.iloc[train_size:train_size+val_size].copy()
 test_data  = df.iloc[train_size+val_size:].copy()
-
-# Verify the split sizes (optional)
-print(len(train_data), len(val_data), len(test_data))  # Expect 70, 15, 15
 
 # Scale the feature columns using training data statistics
 feature_cols = [col for col in train_data.columns if col != 'DeepSleep']  # all columns except the target
@@ -140,7 +134,7 @@ class TemporalBlock(nn.Module):
 
 # Define the full TCN network
 class TCN(nn.Module):
-    def __init__(self, input_channels, output_size, num_channels_list, kernel_size=3, dropout=0.0):
+    def __init__(self, input_channels, output_size, num_channels_list, kernel_size=3, dropout=0.3):
         """
         input_channels: number of input features (channels)
         output_size: dimension of output (for regression = 1)
@@ -191,7 +185,7 @@ model.to(device)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)  # learning rate can be tuned
 
-EPOCHS = 350
+EPOCHS = 550
 for epoch in range(1, EPOCHS+1):
     model.train()
     train_loss = 0.0
@@ -301,63 +295,63 @@ def compute_permutation_importance(model, test_data, seq_length, baseline_mse, f
     return importances
 
 
-############ Permutation Importance Calculation ############
-# Run permutation importance
-baseline_mse = test_mse
-feature_importances = compute_permutation_importance(
-    model=model,
-    test_data=test_data,
-    seq_length=SEQ_LENGTH,
-    baseline_mse=baseline_mse,
-    feature_cols=feature_cols,
-    target_col=target_col,
-    device=device
-)
+# ############ Permutation Importance Calculation ############
+# # Run permutation importance
+# baseline_mse = test_mse
+# feature_importances = compute_permutation_importance(
+#     model=model,
+#     test_data=test_data,
+#     seq_length=SEQ_LENGTH,
+#     baseline_mse=baseline_mse,
+#     feature_cols=feature_cols,
+#     target_col=target_col,
+#     device=device
+# )
 
-# Sort and print
-sorted_importances = sorted(feature_importances.items(), key=lambda x: x[1], reverse=True)
-print("\nFeature Importance (Permutation):")
-for feat, imp in sorted_importances:
-    print(f"{feat}: ΔMSE = {imp:.4f}")
-
-
+# # Sort and print
+# sorted_importances = sorted(feature_importances.items(), key=lambda x: x[1], reverse=True)
+# print("\nFeature Importance (Permutation):")
+# for feat, imp in sorted_importances:
+#     print(f"{feat}: ΔMSE = {imp:.4f}")
 
 
-# ############### Saliency Map (Input Gradient Attribution) ###############
-# # Get one test sample for attribution (you can loop for more later)
-# sample_X, _ = test_dataset[0]  # shape: (features, seq_length)
-# sample_X = sample_X.unsqueeze(0).to(device)  # add batch dim → shape: (1, features, seq_length)
-# sample_X.requires_grad = True  # enable gradient tracking
 
-# # Forward pass
-# model.eval()
-# output = model(sample_X)
-# loss = output.squeeze()  # since it's regression, we use the prediction directly
 
-# # Backward pass: compute gradients w.r.t. input
-# loss.backward()
+############### Saliency Map (Input Gradient Attribution) ###############
+# Get one test sample for attribution (you can loop for more later)
+sample_X, _ = test_dataset[0]  # shape: (features, seq_length)
+sample_X = sample_X.unsqueeze(0).to(device)  # add batch dim → shape: (1, features, seq_length)
+sample_X.requires_grad = True  # enable gradient tracking
 
-# # Get the gradients (same shape as input)
-# saliency = sample_X.grad.abs().squeeze().cpu().numpy()  # shape: (features, seq_length)
+# Forward pass
+model.eval()
+output = model(sample_X)
+loss = output.squeeze()  # since it's regression, we use the prediction directly
 
-# # Average saliency across time (seq_length) to rank features
-# feature_saliency = saliency.mean(axis=1)  # shape: (features,)
-# feature_importance = list(zip(feature_cols, feature_saliency))
-# feature_importance.sort(key=lambda x: x[1], reverse=True)
+# Backward pass: compute gradients w.r.t. input
+loss.backward()
 
-# # Print sorted importance
-# print("\nSaliency-based Feature Importance (average abs gradient across time):")
-# for name, score in feature_importance:
-#     print(f"{name}: {score:.4f}")
+# Get the gradients (same shape as input)
+saliency = sample_X.grad.abs().squeeze().cpu().numpy()  # shape: (features, seq_length)
 
-# # Optional: plot saliency heatmap
-# import seaborn as sns
+# Average saliency across time (seq_length) to rank features
+feature_saliency = saliency.mean(axis=1)  # shape: (features,)
+feature_importance = list(zip(feature_cols, feature_saliency))
+feature_importance.sort(key=lambda x: x[1], reverse=True)
 
-# plt.figure(figsize=(12, 6))
-# sns.heatmap(saliency, xticklabels=[f"T-{SEQ_LENGTH - i - 1}" for i in range(SEQ_LENGTH)],
-#             yticklabels=feature_cols, cmap="viridis", annot=False)
-# plt.title("Input Gradient Saliency (Feature Attribution)")
-# plt.xlabel("Time Step")
-# plt.ylabel("Input Features")
-# plt.tight_layout()
-# plt.show()
+# Print sorted importance
+print("\nSaliency-based Feature Importance (average abs gradient across time):")
+for name, score in feature_importance:
+    print(f"{name}: {score:.4f}")
+
+# Optional: plot saliency heatmap
+import seaborn as sns
+
+plt.figure(figsize=(12, 6))
+sns.heatmap(saliency, xticklabels=[f"T-{SEQ_LENGTH - i - 1}" for i in range(SEQ_LENGTH)],
+            yticklabels=feature_cols, cmap="viridis", annot=False)
+plt.title("Input Gradient Saliency (Feature Attribution)")
+plt.xlabel("Time Step")
+plt.ylabel("Input Features")
+plt.tight_layout()
+plt.show()
