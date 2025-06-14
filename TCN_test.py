@@ -192,10 +192,12 @@ model.to(device)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001) 
 
-
+### loss plot lists
 train_loss_list = []
 val_loss_list = []
-EPOCHS = 2000
+test_mae_list = []
+
+EPOCHS = 650
 for epoch in range(1, EPOCHS+1):
     model.train()
     train_loss = 0.0
@@ -224,6 +226,23 @@ for epoch in range(1, EPOCHS+1):
     print(f"Epoch {epoch}: Train MSE = {train_loss:.4f}, Val MSE = {val_loss:.4f}")
     train_loss_list.append(train_loss)
     val_loss_list.append(val_loss)
+
+    # --- Track test MAE per epoch ---
+    model.eval()
+    epoch_test_preds = []
+    epoch_test_actuals = []
+    with torch.no_grad():
+        for batch_X, batch_y in test_loader:
+            batch_X, batch_y = batch_X.to(device), batch_y.to(device)
+            preds = model(batch_X).squeeze()
+            epoch_test_preds.append(preds.cpu().numpy())
+            epoch_test_actuals.append(batch_y.cpu().numpy())
+
+    epoch_test_preds = np.concatenate(epoch_test_preds)
+    epoch_test_actuals = np.concatenate(epoch_test_actuals)
+    epoch_test_mae = np.mean(np.abs(epoch_test_preds - epoch_test_actuals))
+    test_mae_list.append(epoch_test_mae)
+
     
     # (Optional) Early stopping: you could stop if val_loss doesn't improve for several epochs
 
@@ -283,6 +302,18 @@ plt.plot(val_loss_list, label="Validation MSE", color='orange')
 plt.xlabel("Epoch")
 plt.ylabel("MSE Loss")
 plt.title("Training vs Validation MSE over Epochs")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+
+# Plot all losses
+plt.figure(figsize=(10, 5))
+plt.plot(test_mae_list, label="Test MAE", color='green')
+plt.xlabel("Epoch")
+plt.ylabel("Loss / Error")
+plt.title("Test MAE over Epochs")
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
