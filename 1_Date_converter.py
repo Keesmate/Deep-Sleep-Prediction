@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 # load data
-df = pd.read_csv('cleaned_data.csv')
+df = pd.read_csv('/Users/noah/PycharmProjects/QuantifedSelf/enhanced_dataset.csv')
 
 
 ################# 1. Data Preparation #################
@@ -53,4 +53,4 @@ print(df["BedTimeSin"].head())
 df.drop(['Bed-time', 'Wakeup-time', 'BedTimeMinutes', 'WakeTimeMinutes', 
          'Sunrise', 'Sunset', 'SunriseMinutes', 'SunsetMinutes'], axis=1, inplace=True)
 
-df.to_csv('Data_1.csv', index=False)
+df.to_csv('enhanced_dataset.csv', index=False)

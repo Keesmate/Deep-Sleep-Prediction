@@ -21,7 +21,7 @@ def set_seed(seed=42):
 set_seed(42)
 
 # Load and prepare data
-df = pd.read_csv('Data_1_seasonal_features_clean.csv')
+df = pd.read_csv('/Users/noah/PycharmProjects/QuantifedSelf/Data_1.csv')
 df.rename(columns={'Deep sleep (mins)': 'DeepSleep'}, inplace=True)
 
 # Drop GMM columns
@@ -76,7 +76,7 @@ def robust_feature_selection(X_train, y_train, max_features=12):
         estimator=base_selector,
         step=1,
         cv=tscv,
-        scoring='neg_mean_squared_error',
+        scoring='neg_mean_absolute_error',
         min_features_to_select=min(5, len(feature_cols) // 3)  # At least 5 features
     )
 
@@ -127,7 +127,7 @@ def objective(trial):
         train_data[selected_features],
         train_data[target_col],
         cv=tscv,
-        scoring='neg_mean_squared_error',
+        scoring='neg_mean_absolute_error',
         n_jobs=-1
     )
 
@@ -144,7 +144,7 @@ selected_features = robust_feature_selection(
 # Hyperparameter optimization with early stopping
 print("Starting hyperparameter optimization...")
 study = optuna.create_study(direction="minimize")
-study.optimize(objective, n_trials=50, n_jobs=-1)  # Fewer trials to prevent overfitting
+study.optimize(objective, n_trials=150, n_jobs=-1)  # Fewer trials to prevent overfitting
 
 best_params = study.best_params
 print("Best hyperparameters:", best_params)
@@ -160,6 +160,9 @@ final_model = RandomForestRegressor(
 
 # Fit on training data only (not train+val) for better generalization assessment
 final_model.fit(train_data[selected_features], train_data[target_col])
+# Print selected features and hyperparameters for final model
+print("Selected features for final model:", selected_features)
+print("Selected hyperparameters for final model:", final_model.get_params())
 
 
 # ################# COMPREHENSIVE EVALUATION #################
@@ -184,67 +187,61 @@ test_preds, test_mse, test_mae = evaluate_model(final_model, test_data, selected
 if hasattr(final_model, 'oob_score_') and final_model.oob_score_ is not None:
     print(f"OOB Score: {final_model.oob_score_:.4f}")
 
-# ################# OVERFITTING DIAGNOSTICS #################
+# ################# OVERFITTING DIAGNOSTICS (UPDATED FOR MAE) #################
 print("\n=== OVERFITTING ANALYSIS ===")
-train_val_ratio = val_mse / train_mse
-test_val_ratio = test_mse / val_mse
-test_train_ratio = test_mse / train_mse
+# Use MAE ratios to match optimization goal
+train_val_ratio_mae = val_mae / train_mae
+test_val_ratio_mae = test_mae / val_mae
+test_train_ratio_mae = test_mae / train_mae
 
-print(f"Val/Train MSE ratio: {train_val_ratio:.2f} (should be close to 1.0)")
-print(f"Test/Val MSE ratio: {test_val_ratio:.2f} (should be close to 1.0)")
-print(f"Test/Train MSE ratio: {test_train_ratio:.2f} (should be close to 1.0)")
+print(f"Val/Train MAE ratio: {train_val_ratio_mae:.2f} (should be close to 1.0)")
+print(f"Test/Val MAE ratio: {test_val_ratio_mae:.2f} (should be close to 1.0)")
+print(f"Test/Train MAE ratio: {test_train_ratio_mae:.2f} (should be close to 1.0)")
 
-if test_train_ratio > 2.0:
+if test_train_ratio_mae > 2.0:
     print("⚠️  Significant overfitting detected!")
-elif test_train_ratio > 1.5:
+elif test_train_ratio_mae > 1.5:
     print("⚠️  Moderate overfitting detected")
 else:
     print("✅ Overfitting appears controlled")
 
 # ################# VISUALIZATION #################
-# Plot predictions vs actual for all sets
-fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-
-# Time series plot
-ax1 = axes[0, 0]
+# Time series plot showing predictions over time
+plt.figure(figsize=(12, 6))
 train_days = range(len(train_data))
 val_days = range(len(train_data), len(train_data) + len(val_data))
 test_days = range(len(train_data) + len(val_data), len(train_data) + len(val_data) + len(test_data))
 
-ax1.plot(train_days, train_data[target_col].values, 'b-', label='Train Actual', alpha=0.7)
-ax1.plot(train_days, train_preds, 'b--', label='Train Predicted', alpha=0.7)
-ax1.plot(val_days, val_data[target_col].values, 'g-', label='Val Actual', alpha=0.7)
-ax1.plot(val_days, val_preds, 'g--', label='Val Predicted', alpha=0.7)
-ax1.plot(test_days, test_data[target_col].values, 'r-', label='Test Actual', alpha=0.7)
-ax1.plot(test_days, test_preds, 'r--', label='Test Predicted', alpha=0.7)
-ax1.axvline(x=len(train_data), color='gray', linestyle=':', alpha=0.5)
-ax1.axvline(x=len(train_data) + len(val_data), color='gray', linestyle=':', alpha=0.5)
-ax1.set_title('Deep Sleep Predictions Over Time')
-ax1.set_xlabel('Day')
-ax1.set_ylabel('Deep Sleep (minutes)')
-ax1.legend()
-ax1.grid(True, alpha=0.3)
-
-# Scatter plots for each set
-for idx, (data, preds, name, color) in enumerate([
-    (train_data, train_preds, 'Train', 'blue'),
-    (val_data, val_preds, 'Validation', 'green'),
-    (test_data, test_preds, 'Test', 'red')
-]):
-    ax = axes[0, 1] if idx == 0 else axes[1, idx - 1]
-    ax.scatter(data[target_col], preds, alpha=0.6, color=color)
-
-    # Add perfect prediction line
-    min_val = min(data[target_col].min(), preds.min())
-    max_val = max(data[target_col].max(), preds.max())
-    ax.plot([min_val, max_val], [min_val, max_val], 'k--', alpha=0.5)
-
-    ax.set_xlabel('Actual Deep Sleep (minutes)')
-    ax.set_ylabel('Predicted Deep Sleep (minutes)')
-    ax.set_title(f'{name} Set: Actual vs Predicted')
-    ax.grid(True, alpha=0.3)
-
+plt.plot(train_days, train_data[target_col].values, 'b-', label='Train Actual', alpha=0.7)
+plt.plot(train_days, train_preds, 'b--', label='Train Predicted', alpha=0.7)
+plt.plot(val_days, val_data[target_col].values, 'g-', label='Val Actual', alpha=0.7)
+plt.plot(val_days, val_preds, 'g--', label='Val Predicted', alpha=0.7)
+plt.plot(test_days, test_data[target_col].values, 'r-', label='Test Actual', alpha=0.7)
+plt.plot(test_days, test_preds, 'r--', label='Test Predicted', alpha=0.7)
+plt.axvline(x=len(train_data), color='gray', linestyle=':', alpha=0.5)
+plt.axvline(x=len(train_data) + len(val_data), color='gray', linestyle=':', alpha=0.5)
+plt.title('Deep Sleep Predictions Over Time')
+plt.xlabel('Day')
+plt.ylabel('Deep Sleep (minutes)')
+plt.legend()
+plt.grid(True, alpha=0.3)
 plt.tight_layout()
+plt.show()
+
+# Separate plot for validation and test sets only
+plt.figure(figsize=(10, 6))
+# Validation period
+plt.plot(val_days, val_data[target_col].values, 'g-', label='Val Actual')
+plt.plot(val_days, val_preds, 'g--', label='Val Predicted')
+# Test period
+plt.plot(test_days, test_data[target_col].values, 'r-', label='Test Actual')
+plt.plot(test_days, test_preds, 'r--', label='Test Predicted')
+plt.axvline(x=len(train_data), color='gray', linestyle=':', alpha=0.5)
+plt.title('Validation and Test Predictions Over Time')
+plt.xlabel('Day Index')
+plt.ylabel('Deep Sleep (minutes)')
+plt.legend()
+plt.grid(True, alpha=0.3)
 plt.show()
 
 # Feature importance plot (top 10 only to reduce clutter)
@@ -261,8 +258,8 @@ plt.gca().invert_yaxis()
 plt.tight_layout()
 plt.show()
 
-# ################# ADDITIONAL VALIDATION #################
-# Learning curve analysis to detect overfitting
+# ################# ADDITIONAL VALIDATION (UPDATED FOR MAE) #################
+# Learning curve analysis to detect overfitting - now using MAE to match optimization goal
 from sklearn.model_selection import learning_curve
 
 train_sizes, train_scores, val_scores = learning_curve(
@@ -271,22 +268,42 @@ train_sizes, train_scores, val_scores = learning_curve(
     train_data[target_col],
     cv=TimeSeriesSplit(n_splits=3),
     train_sizes=np.linspace(0.3, 1.0, 5),
-    scoring='neg_mean_squared_error',
+    scoring='neg_mean_absolute_error',  # Changed from MSE to MAE
     n_jobs=-1
 )
 
 plt.figure(figsize=(10, 6))
-plt.plot(train_sizes, -train_scores.mean(axis=1), 'b-', label='Training MSE')
+plt.plot(train_sizes, -train_scores.mean(axis=1), 'b-', label='Training MAE')
 plt.fill_between(train_sizes, -train_scores.mean(axis=1) - train_scores.std(axis=1),
                  -train_scores.mean(axis=1) + train_scores.std(axis=1), alpha=0.1, color='blue')
-plt.plot(train_sizes, -val_scores.mean(axis=1), 'r-', label='Validation MSE')
+plt.plot(train_sizes, -val_scores.mean(axis=1), 'r-', label='Validation MAE')
 plt.fill_between(train_sizes, -val_scores.mean(axis=1) - val_scores.std(axis=1),
                  -val_scores.mean(axis=1) + val_scores.std(axis=1), alpha=0.1, color='red')
 plt.xlabel('Training Set Size')
-plt.ylabel('Mean Squared Error')
-plt.title('Learning Curves')
+plt.ylabel('Mean Absolute Error')  # Changed from MSE to MAE
+plt.title('Learning Curves (MAE)')  # Updated title
 plt.legend()
 plt.grid(True, alpha=0.3)
+plt.show()
+
+# ################# MAE PROGRESSION PLOT #################
+# Additional plot showing MAE progression across train/val/test
+mae_values = [train_mae, val_mae, test_mae]
+set_names = ['Train', 'Validation', 'Test']
+colors = ['blue', 'green', 'red']
+
+plt.figure(figsize=(8, 6))
+bars = plt.bar(set_names, mae_values, color=colors, alpha=0.7)
+plt.ylabel('Mean Absolute Error')
+plt.title('MAE Comparison Across Train/Val/Test Sets')
+plt.grid(True, alpha=0.3, axis='y')
+
+# Add value labels on bars
+for bar, mae_val in zip(bars, mae_values):
+    plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(mae_values)*0.01,
+             f'{mae_val:.3f}', ha='center', va='bottom')
+
+plt.tight_layout()
 plt.show()
 
 print("\n=== RECOMMENDATIONS ===")
@@ -296,3 +313,4 @@ print("3. Implement early stopping in hyperparameter optimization")
 print("4. Consider ensemble methods with different algorithms")
 print("5. Add temporal features if not already present")
 print("6. Try different validation strategies (blocked time series)")
+print("7. Model optimized for MAE - all plots now consistent with optimization goal")
