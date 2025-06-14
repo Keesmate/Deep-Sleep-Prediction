@@ -21,7 +21,7 @@ def set_seed(seed=42):
 set_seed(42)
 
 # Load and prepare data
-df = pd.read_csv('/Users/noah/PycharmProjects/QuantifedSelf/cleaned_data.csv')
+df = pd.read_csv('Data_1_seasonal_features_clean.csv')
 df.rename(columns={'Deep sleep (mins)': 'DeepSleep'}, inplace=True)
 
 # Drop GMM columns
