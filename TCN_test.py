@@ -313,3 +313,65 @@ plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
+
+
+############ Permutation Importance Calculation ############
+# Run permutation importance
+baseline_mse = test_mse
+feature_importances = compute_permutation_importance(
+    model=model,
+    test_data=test_data,
+    seq_length=SEQ_LENGTH,
+    baseline_mse=baseline_mse,
+    feature_cols=feature_cols,
+    target_col=target_col,
+    device=device
+)
+
+# Sort and print
+sorted_importances = sorted(feature_importances.items(), key=lambda x: x[1], reverse=True)
+print("\nFeature Importance (Permutation):")
+for feat, imp in sorted_importances:
+    print(f"{feat}: ΔMSE = {imp:.4f}")
+
+
+
+
+# ############### Saliency Map (Input Gradient Attribution) ###############
+# # Get one test sample for attribution (you can loop for more later)
+# sample_X, _ = test_dataset[0]  # shape: (features, seq_length)
+# sample_X = sample_X.unsqueeze(0).to(device)  # add batch dim → shape: (1, features, seq_length)
+# sample_X.requires_grad = True  # enable gradient tracking
+
+# # Forward pass
+# model.eval()
+# output = model(sample_X)
+# loss = output.squeeze()  # since it's regression, we use the prediction directly
+
+# # Backward pass: compute gradients w.r.t. input
+# loss.backward()
+
+# # Get the gradients (same shape as input)
+# saliency = sample_X.grad.abs().squeeze().cpu().numpy()  # shape: (features, seq_length)
+
+# # Average saliency across time (seq_length) to rank features
+# feature_saliency = saliency.mean(axis=1)  # shape: (features,)
+# feature_importance = list(zip(feature_cols, feature_saliency))
+# feature_importance.sort(key=lambda x: x[1], reverse=True)
+
+# # Print sorted importance
+# print("\nSaliency-based Feature Importance (average abs gradient across time):")
+# for name, score in feature_importance:
+#     print(f"{name}: {score:.4f}")
+
+# # Optional: plot saliency heatmap
+# import seaborn as sns
+
+# plt.figure(figsize=(12, 6))
+# sns.heatmap(saliency, xticklabels=[f"T-{SEQ_LENGTH - i - 1}" for i in range(SEQ_LENGTH)],
+#             yticklabels=feature_cols, cmap="viridis", annot=False)
+# plt.title("Input Gradient Saliency (Feature Attribution)")
+# plt.xlabel("Time Step")
+# plt.ylabel("Input Features")
+# plt.tight_layout()
+# plt.show()

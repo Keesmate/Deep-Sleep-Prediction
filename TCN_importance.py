@@ -265,34 +265,34 @@ plt.show()
 # plt.savefig('deep_sleep_prediction_plot.png')  # optionally save
 
 
-# --------------- Permutation Feature Importance ---------------
-def compute_permutation_importance(model, test_data, seq_length, baseline_mse, feature_cols, target_col, device):
-    importances = {}
+# # --------------- Permutation Feature Importance ---------------
+# def compute_permutation_importance(model, test_data, seq_length, baseline_mse, feature_cols, target_col, device):
+#     importances = {}
     
-    for feature in feature_cols:
-        permuted_data = test_data.copy()
-        permuted_data[feature] = np.random.permutation(permuted_data[feature].values)
+#     for feature in feature_cols:
+#         permuted_data = test_data.copy()
+#         permuted_data[feature] = np.random.permutation(permuted_data[feature].values)
 
-        permuted_dataset = SleepDataset(permuted_data, seq_length=seq_length)
-        permuted_loader = DataLoader(permuted_dataset, batch_size=1, shuffle=False)
+#         permuted_dataset = SleepDataset(permuted_data, seq_length=seq_length)
+#         permuted_loader = DataLoader(permuted_dataset, batch_size=1, shuffle=False)
 
-        model.eval()
-        perm_preds = []
-        perm_actuals = []
-        with torch.no_grad():
-            for batch_X, batch_y in permuted_loader:
-                batch_X = batch_X.to(device)
-                pred = model(batch_X).squeeze().cpu().numpy()
-                perm_preds.append(pred)
-                perm_actuals.append(batch_y.numpy())
+#         model.eval()
+#         perm_preds = []
+#         perm_actuals = []
+#         with torch.no_grad():
+#             for batch_X, batch_y in permuted_loader:
+#                 batch_X = batch_X.to(device)
+#                 pred = model(batch_X).squeeze().cpu().numpy()
+#                 perm_preds.append(pred)
+#                 perm_actuals.append(batch_y.numpy())
 
-        perm_preds = np.array(perm_preds).flatten()
-        perm_actuals = np.array(perm_actuals).flatten()
+#         perm_preds = np.array(perm_preds).flatten()
+#         perm_actuals = np.array(perm_actuals).flatten()
 
-        perm_mse = mean_squared_error(perm_actuals, perm_preds)
-        importances[feature] = perm_mse - baseline_mse  # delta MSE
+#         perm_mse = mean_squared_error(perm_actuals, perm_preds)
+#         importances[feature] = perm_mse - baseline_mse  # delta MSE
 
-    return importances
+#     return importances
 
 
 # ############ Permutation Importance Calculation ############

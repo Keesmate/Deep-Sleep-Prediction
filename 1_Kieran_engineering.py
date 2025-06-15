@@ -86,6 +86,10 @@ df = pd.get_dummies(df, columns=['BedtimeCategory', 'Sleep_Duration_Category'])
 
 # drop deep sleep related engineered features (data leakage)
 df.drop(['Deep_Sleep_Ratio'], axis=1, inplace=True)
+df.drop(['Sleep_Efficiency'], axis=1, inplace=True)
+df.drop(['Sleep score'], axis=1, inplace=True)
+df.drop(['Sleep_Quality_Score'], axis=1, inplace=True)
+df.drop(['Sleep_Battery_Interaction'], axis=1, inplace=True)
 
 
 df.to_csv('Data_1.csv', index=False)
