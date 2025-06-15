@@ -21,7 +21,7 @@ def set_seed(seed=42):
 set_seed(42)
 
 # Load and prepare data
-df = pd.read_csv('/Users/noah/PycharmProjects/QuantifedSelf/Data_1_seasonal_features_clean.csv')
+df = pd.read_csv('/Data_1.csv')
 df.rename(columns={'Deep sleep (mins)': 'DeepSleep'}, inplace=True)
 
 # Drop GMM columns
@@ -205,43 +205,21 @@ elif test_train_ratio_mae > 1.5:
 else:
     print("✅ Overfitting appears controlled")
 
-# ################# VISUALIZATION - CONNECTED ACTUAL AND PREDICTED VALUES #################
-# Time series plot showing predictions over time (connected actual and predicted lines)
+# ################# VISUALIZATION #################
+# Time series plot showing predictions over time
 plt.figure(figsize=(12, 6))
-
-# Create continuous day indices
 train_days = range(len(train_data))
 val_days = range(len(train_data), len(train_data) + len(val_data))
 test_days = range(len(train_data) + len(val_data), len(train_data) + len(val_data) + len(test_data))
 
-# Connect actual values across all sets
-train_actual_extended = np.concatenate([train_data[target_col].values, [val_data[target_col].values[0]]])
-val_actual_extended = np.concatenate([[train_data[target_col].values[-1]], val_data[target_col].values, [test_data[target_col].values[0]]])
-test_actual_extended = np.concatenate([[val_data[target_col].values[-1]], test_data[target_col].values])
-
-train_days_extended = list(train_days) + [len(train_data)]
-val_days_extended = [len(train_data)-1] + list(val_days) + [len(train_data) + len(val_data)]
-test_days_extended = [len(train_data) + len(val_data)-1] + list(test_days)
-
-# Plot connected actual values
-plt.plot(train_days_extended, train_actual_extended, 'b-', label='Train Actual', alpha=0.7)
-plt.plot(val_days_extended, val_actual_extended, 'g-', label='Val Actual', alpha=0.7)
-plt.plot(test_days_extended, test_actual_extended, 'r-', label='Test Actual', alpha=0.7)
-
-# Connect predicted values across all sets
-train_preds_extended = np.concatenate([train_preds, [val_preds[0]]])
-val_preds_extended = np.concatenate([[train_preds[-1]], val_preds, [test_preds[0]]])
-test_preds_extended = np.concatenate([[val_preds[-1]], test_preds])
-
-# Plot connected predicted values
-plt.plot(train_days_extended, train_preds_extended, 'b--', label='Train Predicted', alpha=0.7)
-plt.plot(val_days_extended, val_preds_extended, 'g--', label='Val Predicted', alpha=0.7)
-plt.plot(test_days_extended, test_preds_extended, 'r--', label='Test Predicted', alpha=0.7)
-
-# Add split lines
+plt.plot(train_days, train_data[target_col].values, 'b-', label='Train Actual', alpha=0.7)
+plt.plot(train_days, train_preds, 'b--', label='Train Predicted', alpha=0.7)
+plt.plot(val_days, val_data[target_col].values, 'g-', label='Val Actual', alpha=0.7)
+plt.plot(val_days, val_preds, 'g--', label='Val Predicted', alpha=0.7)
+plt.plot(test_days, test_data[target_col].values, 'r-', label='Test Actual', alpha=0.7)
+plt.plot(test_days, test_preds, 'r--', label='Test Predicted', alpha=0.7)
 plt.axvline(x=len(train_data), color='gray', linestyle=':', alpha=0.5)
 plt.axvline(x=len(train_data) + len(val_data), color='gray', linestyle=':', alpha=0.5)
-
 plt.title('Deep Sleep Predictions Over Time')
 plt.xlabel('Day')
 plt.ylabel('Deep Sleep (minutes)')
@@ -252,27 +230,13 @@ plt.show()
 
 # Separate plot for validation and test sets only
 plt.figure(figsize=(10, 6))
-
-# Connect actual values for val and test
-val_actual_extended_simple = np.concatenate([[train_data[target_col].values[-1]], val_data[target_col].values, [test_data[target_col].values[0]]])
-test_actual_extended_simple = np.concatenate([[val_data[target_col].values[-1]], test_data[target_col].values])
-
-val_days_extended_simple = [len(train_data)-1] + list(val_days) + [len(train_data) + len(val_data)]
-test_days_extended_simple = [len(train_data) + len(val_data)-1] + list(test_days)
-
-# Plot connected actual values
-plt.plot(val_days_extended_simple, val_actual_extended_simple, 'g-', label='Val Actual')
-plt.plot(test_days_extended_simple, test_actual_extended_simple, 'r-', label='Test Actual')
-
-# Connect predicted values for val and test
-val_preds_extended_simple = np.concatenate([[train_preds[-1]], val_preds, [test_preds[0]]])
-test_preds_extended_simple = np.concatenate([[val_preds[-1]], test_preds])
-
-# Plot connected predicted values
-plt.plot(val_days_extended_simple, val_preds_extended_simple, 'g--', label='Val Predicted')
-plt.plot(test_days_extended_simple, test_preds_extended_simple, 'r--', label='Test Predicted')
-
-plt.axvline(x=len(train_data) + len(val_data), color='gray', linestyle=':', alpha=0.5)
+# Validation period
+plt.plot(val_days, val_data[target_col].values, 'g-', label='Val Actual')
+plt.plot(val_days, val_preds, 'g--', label='Val Predicted')
+# Test period
+plt.plot(test_days, test_data[target_col].values, 'r-', label='Test Actual')
+plt.plot(test_days, test_preds, 'r--', label='Test Predicted')
+plt.axvline(x=len(train_data), color='gray', linestyle=':', alpha=0.5)
 plt.title('Validation and Test Predictions Over Time')
 plt.xlabel('Day Index')
 plt.ylabel('Deep Sleep (minutes)')
@@ -342,25 +306,6 @@ for bar, mae_val in zip(bars, mae_values):
 plt.tight_layout()
 plt.show()
 
-# ################# RESIDUAL ANALYSIS #################
-# Additional diagnostic plot: residuals over time (connected across sets)
-all_actual = np.concatenate([train_data[target_col].values, val_data[target_col].values, test_data[target_col].values])
-all_predicted = np.concatenate([train_preds, val_preds, test_preds])
-all_days = range(len(all_actual))
-residuals = all_actual - all_predicted
-
-plt.figure(figsize=(12, 6))
-plt.plot(all_days, residuals, 'o-', alpha=0.6, markersize=4)
-plt.axhline(y=0, color='red', linestyle='--', alpha=0.7)
-plt.axvline(x=len(train_data), color='gray', linestyle=':', alpha=0.7)
-plt.axvline(x=len(train_data) + len(val_data), color='gray', linestyle=':', alpha=0.7)
-plt.title('Residuals Over Time')
-plt.xlabel('Day Index')
-plt.ylabel('Residual (Actual - Predicted)')
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
-plt.show()
-
 print("\n=== RECOMMENDATIONS ===")
 print("1. Consider collecting more data if possible")
 print("2. Try simpler models (Linear Regression, Ridge) as baselines")
@@ -369,4 +314,3 @@ print("4. Consider ensemble methods with different algorithms")
 print("5. Add temporal features if not already present")
 print("6. Try different validation strategies (blocked time series)")
 print("7. Model optimized for MAE - all plots now consistent with optimization goal")
-print("8. ✅ Fixed: Continuous time series plots with no gaps between train/val/test predictions")
