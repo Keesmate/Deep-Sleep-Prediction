@@ -90,6 +90,8 @@ df.drop(['Sleep_Efficiency'], axis=1, inplace=True)
 df.drop(['Sleep score'], axis=1, inplace=True)
 df.drop(['Sleep_Quality_Score'], axis=1, inplace=True)
 df.drop(['Sleep_Battery_Interaction'], axis=1, inplace=True)
+df.drop(['Sleep_Duration_Category'], axis=1, inplace=True)
+
 
 
 df.to_csv('Data_1.csv', index=False)

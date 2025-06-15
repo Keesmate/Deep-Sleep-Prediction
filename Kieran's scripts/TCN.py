@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import random
+from sklearn.metrics import mean_squared_error
 
 # set random seed for reproducibility
 def set_seed(seed=42):
@@ -190,7 +191,7 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 train_loss_list = []
 val_loss_list = []
-EPOCHS = 550
+EPOCHS = 300
 for epoch in range(1, EPOCHS+1):
     model.train()
     train_loss = 0.0

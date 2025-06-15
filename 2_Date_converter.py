@@ -16,6 +16,20 @@ df['Date'] = pd.to_datetime(df['Date'], dayfirst=False)
 df.sort_values('Date', inplace=True)
 df.reset_index(drop=True, inplace=True)
 
+# Handle time-of-day features by converting to numeric and creating cyclical features
+# Convert times to minutes since midnight
+df['BedTimeMinutes'] = pd.to_datetime(df['Bed-time'], format='%I:%M %p').dt.hour * 60 + \
+                       pd.to_datetime(df['Bed-time'], format='%I:%M %p').dt.minute
+
+df['SunsetMinutes'] = pd.to_datetime(df['Sunset'], format='%H:%M').dt.hour * 60 + \
+                      pd.to_datetime(df['Sunset'], format='%H:%M').dt.minute
+
+df['WakeTimeMinutes'] = pd.to_datetime(df['Wakeup-time'], format='%I:%M %p').dt.hour * 60 + \
+                       pd.to_datetime(df['Wakeup-time'], format='%I:%M %p').dt.minute
+
+df['SunriseMinutes'] = pd.to_datetime(df['Sunrise'], format='%H:%M').dt.hour * 60 + \
+                      pd.to_datetime(df['Sunrise'], format='%H:%M').dt.minute
+
 
 # Create cyclical features for bed time + wake time (24h = 1440 minutes period)
 df['BedTimeSin'] = np.sin(2 * np.pi * df['BedTimeMinutes'] / 1440)

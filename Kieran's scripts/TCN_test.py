@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import random
+from sklearn.metrics import mean_squared_error
 
 # set random seed for reproducibility
 def set_seed(seed=42):
@@ -192,7 +193,7 @@ train_loss_list = []
 val_loss_list = []
 test_mae_list = []
 
-EPOCHS = 550
+EPOCHS = 300
 for epoch in range(1, EPOCHS+1):
     model.train()
     train_loss = 0.0
@@ -314,6 +315,34 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
+# --------------- Permutation Feature Importance ---------------
+def compute_permutation_importance(model, test_data, seq_length, baseline_mse, feature_cols, target_col, device):
+    importances = {}
+    
+    for feature in feature_cols:
+        permuted_data = test_data.copy()
+        permuted_data[feature] = np.random.permutation(permuted_data[feature].values)
+
+        permuted_dataset = SleepDataset(permuted_data, seq_length=seq_length)
+        permuted_loader = DataLoader(permuted_dataset, batch_size=1, shuffle=False)
+
+        model.eval()
+        perm_preds = []
+        perm_actuals = []
+        with torch.no_grad():
+            for batch_X, batch_y in permuted_loader:
+                batch_X = batch_X.to(device)
+                pred = model(batch_X).squeeze().cpu().numpy()
+                perm_preds.append(pred)
+                perm_actuals.append(batch_y.numpy())
+
+        perm_preds = np.array(perm_preds).flatten()
+        perm_actuals = np.array(perm_actuals).flatten()
+
+        perm_mse = mean_squared_error(perm_actuals, perm_preds)
+        importances[feature] = perm_mse - baseline_mse  # delta MSE
+
+    return importances
 
 ############ Permutation Importance Calculation ############
 # Run permutation importance
