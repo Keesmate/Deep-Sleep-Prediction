@@ -76,6 +76,9 @@ df['MinutesAfterSunset'] = df.apply(
     axis=1
 )
 
+# minutes before/after sunrise
+df['Minutes_Around_Sunrise'] = df['SunriseMinutes'] - df['WakeTimeMinutes']
+
 
 ############# function to calculate whether bedtime is on time, late or early ##########
 # Calculate mean and standard deviation
@@ -112,6 +115,9 @@ df.drop(['Sleep_Quality_Score'], axis=1, inplace=True)
 df.drop(['Sleep_Battery_Interaction'], axis=1, inplace=True)
 df.drop(['Sleep_Duration_Category'], axis=1, inplace=True)
 df.drop(['Body Battery'], axis=1, inplace=True)
+df.drop(['REM_Sleep_Ratio'], axis=1, inplace=True)
+df.drop(['REM sleep (mins)'], axis=1, inplace=True)
+
 
 # Drop or exclude the original time columns now that we have numeric features
 df.drop(['Bed-time', 'Wakeup-time', 'BedTimeMinutes', 'WakeTimeMinutes', 

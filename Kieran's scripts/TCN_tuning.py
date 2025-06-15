@@ -13,9 +13,6 @@ from itertools import product
 def run_tcn(config):
     # Load data and preprocess
     df = pd.read_csv('Data_1.csv')
-    df.rename(columns={'Deep sleep (mins)': 'DeepSleep'}, inplace=True)
-    df = df.drop(columns=[col for col in df.columns if col.startswith("GMM")])
-
     target_col = 'DeepSleep'
     feature_cols = [col for col in df.columns if col != target_col]
 
@@ -161,8 +158,8 @@ param_grid = {
     'kernel_size': [3, 5, 7],
     'dropout': [0.1, 0.3, 0.5],
     'learning_rate': [0.001, 0.0005],
-    'batch_size': [8, 16, 32],
-    'EPOCHS': [100, 200, 350]
+    'batch_size': [8, 16],
+    'EPOCHS': [200, 350, 500]
 }
 
 # Run grid search
