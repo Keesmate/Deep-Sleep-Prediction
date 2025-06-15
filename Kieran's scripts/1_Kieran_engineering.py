@@ -82,7 +82,7 @@ df['BedtimeCategory'] = df['MinutesAfterSunset'].apply(lambda x: categorize_bedt
 
 
 # One-hot encode the two categorical columns
-df = pd.get_dummies(df, columns=['BedtimeCategory', 'Sleep_Duration_Category'])
+df = pd.get_dummies(df, columns=['BedtimeCategory'])
 
 # drop deep sleep related engineered features (data leakage)
 df.drop(['Deep_Sleep_Ratio'], axis=1, inplace=True)
@@ -91,7 +91,9 @@ df.drop(['Sleep score'], axis=1, inplace=True)
 df.drop(['Sleep_Quality_Score'], axis=1, inplace=True)
 df.drop(['Sleep_Battery_Interaction'], axis=1, inplace=True)
 df.drop(['Sleep_Duration_Category'], axis=1, inplace=True)
+df.drop(['Body Battery'], axis=1, inplace=True)
 
+print(df.columns)
 
 
 df.to_csv('Data_1.csv', index=False)
