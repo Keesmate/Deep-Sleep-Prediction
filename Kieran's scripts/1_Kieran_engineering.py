@@ -46,6 +46,19 @@ df['SunriseMinutes'] = pd.to_datetime(df['Sunrise'], format='%H:%M').dt.hour * 6
                       pd.to_datetime(df['Sunrise'], format='%H:%M').dt.minute
 
 
+# Create cyclical features for bed time + wake time (24h = 1440 minutes period)
+df['BedTimeSin'] = np.sin(2 * np.pi * df['BedTimeMinutes'] / 1440)
+df['BedTimeCos'] = np.cos(2 * np.pi * df['BedTimeMinutes'] / 1440)
+df['WakeTimeSin'] = np.sin(2 * np.pi * df['WakeTimeMinutes'] / 1440)
+df['WakeTimeCos'] = np.cos(2 * np.pi * df['WakeTimeMinutes'] / 1440)
+
+# Create cyclical features for sunset + sunrise (24h = 1440 minutes period)
+df['SunsetSin'] = np.sin(2 * np.pi * df['SunsetMinutes'] / 1440)
+df['SunsetCos'] = np.cos(2 * np.pi * df['SunsetMinutes'] / 1440)
+df['SunriseSin'] = np.sin(2 * np.pi * df['SunriseMinutes'] / 1440)
+df['SunriseCos'] = np.cos(2 * np.pi * df['SunriseMinutes'] / 1440)
+
+
 # minutes after midnight
 def minutes_after_sunset(bed_min, sunset_min):
     """
@@ -62,6 +75,7 @@ df['MinutesAfterSunset'] = df.apply(
     lambda row: minutes_after_sunset(row['BedTimeMinutes'], row['SunsetMinutes']),
     axis=1
 )
+
 
 ############# function to calculate whether bedtime is on time, late or early ##########
 # Calculate mean and standard deviation
@@ -80,9 +94,15 @@ def categorize_bedtime(diff, mean, std):
 
 df['BedtimeCategory'] = df['MinutesAfterSunset'].apply(lambda x: categorize_bedtime(x, mean_diff, std_diff))
 
-
-# One-hot encode the two categorical columns
+# One-hot encode bed time category
 df = pd.get_dummies(df, columns=['BedtimeCategory'])
+
+# heat stress related feature
+df['Heat_Stress_Effort'] = df['Minutes intense exercise'] * df['MaxTemp_C']
+
+# sleep fragmentation feature
+df['Sleep_Fragmentation'] = df['Restless moments'] / df['Duration (mins)']
+
 
 # drop deep sleep related engineered features (data leakage)
 df.drop(['Deep_Sleep_Ratio'], axis=1, inplace=True)
@@ -93,7 +113,10 @@ df.drop(['Sleep_Battery_Interaction'], axis=1, inplace=True)
 df.drop(['Sleep_Duration_Category'], axis=1, inplace=True)
 df.drop(['Body Battery'], axis=1, inplace=True)
 
-print(df.columns)
+# Drop or exclude the original time columns now that we have numeric features
+df.drop(['Bed-time', 'Wakeup-time', 'BedTimeMinutes', 'WakeTimeMinutes', 
+         'Sunrise', 'Sunset', 'SunriseMinutes', 'SunsetMinutes'], axis=1, inplace=True)
 
+print(df.columns)
 
 df.to_csv('Data_1.csv', index=False)

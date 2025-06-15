@@ -20,7 +20,7 @@ def set_seed(seed=42):
 set_seed(42)  # use a fixed seed of your choice
 
 # load data and rename target column
-df = pd.read_csv('Data_2.csv')
+df = pd.read_csv('Data_1.csv')
 df.rename(columns={'Deep sleep (mins)': 'DeepSleep'}, inplace=True)
 
 # Drop or exclude the original time columns now that we have numeric features
